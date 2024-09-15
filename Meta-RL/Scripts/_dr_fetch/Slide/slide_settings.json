@@ -1,0 +1,113 @@
+{
+    "env_name": "FetchSlideDense-v2",
+    "train_steps": 30000000,
+    "n_envs": 16,
+    "n_steps": 256,
+    "batch_size": 256,
+    "n_epochs": 3,
+    "gamma": 0.995,
+    "ent_coef": 0.0,
+    "gae_lambda": 0.9,
+    "activation_fn": "Tanh",
+    "policy_kwargs": {
+        "log_std_init": -2,
+        "ortho_init": true,
+        "activation_fn": "Tanh",
+        "net_arch": {
+            "pi": [
+                128,
+                128
+            ],
+            "vf": [
+                128,
+                128
+            ]
+        }
+    },
+    "dr_specs": {
+        "body('robot0:base_link').mass": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        },
+        "body('robot0:torso_lift_link').mass": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        },
+        "body('robot0:head_pan_link').mass": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        },
+        "body('robot0:head_tilt_link').mass": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        },
+        "joint('robot0:torso_lift_joint').damping": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        },
+        "joint('robot0:head_pan_joint').damping": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        },
+        "joint('robot0:head_tilt_joint').damping": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        },
+        "joint('robot0:shoulder_pan_joint').damping": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        },
+        "geom('robot0:r_gripper_finger_link').friction[0]": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        },
+        "geom('robot0:l_gripper_finger_link').friction[0]": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        },
+        "body('object0').mass": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        },
+        "joint('object0:joint').size[0]": {
+            "uniform": [
+                0.95,
+                1.05
+            ],
+            "type": "*"
+        }
+    }
+}

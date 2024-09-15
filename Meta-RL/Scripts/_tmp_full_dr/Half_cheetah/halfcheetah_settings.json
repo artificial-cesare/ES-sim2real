@@ -1,0 +1,86 @@
+{
+    "env_name": "HalfCheetah-v4",
+    "rand_class": "Rand",
+    "train_steps": 30000000,
+    "n_envs": 16,
+    "n_steps": 512,
+    "batch_size": 64,
+    "n_epochs": 3,
+    "gamma": 0.995,
+    "ent_coef": 0.0,
+    "gae_lambda": 0.95,
+    "sde_sample_freq": 4,
+    "activation_fn": "Tanh",
+    "policy_kwargs": {
+        "log_std_init": -2,
+        "ortho_init": true,
+        "net_arch": {
+            "pi": [
+                128,
+                128
+            ],
+            "vf": [
+                128,
+                128
+            ]
+        }
+    },
+    "dr_specs": {
+        "body('torso').mass": {
+            "uniform": [
+                0.8,
+                1.2
+            ],
+            "type": "*"
+        },
+        "body('bthigh').mass": {
+            "uniform": [
+                0.8,
+                1.2
+            ],
+            "type": "*"
+        },
+        "body('bshin').mass": {
+            "uniform": [
+                0.8,
+                1.2
+            ],
+            "type": "*"
+        },
+        "body('bfoot').mass": {
+            "uniform": [
+                0.8,
+                1.2
+            ],
+            "type": "*"
+        },
+        "body('fthigh').mass": {
+            "uniform": [
+                0.8,
+                1.2
+            ],
+            "type": "*"
+        },
+        "body('fshin').mass": {
+            "uniform": [
+                0.8,
+                1.2
+            ],
+            "type": "*"
+        },
+        "body('ffoot').mass": {
+            "uniform": [
+                0.8,
+                1.2
+            ],
+            "type": "*"
+        },
+        "geom('floor').friction[0]": {
+            "uniform": [
+                0.8,
+                1.2
+            ],
+            "type": "*"
+        }
+    }
+}

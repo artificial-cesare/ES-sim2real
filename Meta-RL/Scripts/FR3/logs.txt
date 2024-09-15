@@ -1,0 +1,22 @@
+When encountering: 
+
+"AttributeError: 'mujoco._structs.MjData' object has no attribute 'solver_iter'. Did you mean: 'solver_niter'?"
+
+GOTO: 
+ie: the location of mujoco rendering in the conda env
+
+"C:\Users\cesar\miniconda3\envs\fr3_test\Lib\site-packages\gymnasium\envs\mujoco\mujoco_rendering.py"
+
+and change the add_overlay fn with:
+if mujoco.__version__ => "3.0.0":
+    self.add_overlay(
+        bottomleft, "Solver iterations", str(self.data.solver_niter[0] + 1)
+    )
+elif mujoco.__version__ < "3.0.0":
+    self.add_overlay(
+        bottomleft, "Solver iterations", str(self.data.solver_iter + 1)
+    )
+
+!! REMEMBER !!
+fr3 in menagerie only works with mujoco >= 3.1.3, while gym-robotics works with 2.3.7, 
+now trying to load all packages from robotics locally and use mujoco==3.1.3
