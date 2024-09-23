@@ -5,21 +5,12 @@ from typing import Optional, Union
 import numpy as np
 from gymnasium import error, logger, spaces
 
-from gymnasium_robotics.core import GoalEnv
-
-try:
-    import mujoco_py
-
-    from gymnasium_robotics.utils import mujoco_py_utils
-except ImportError as e:
-    MUJOCO_PY_IMPORT_ERROR = e
-else:
-    MUJOCO_PY_IMPORT_ERROR = None
+from .core import GoalEnv
 
 try:
     import mujoco
 
-    from gymnasium_robotics.utils import mujoco_utils
+    from . import mujoco_utils
 except ImportError as e:
     MUJOCO_IMPORT_ERROR = e
 else:

@@ -42,7 +42,7 @@ class FrankaFR3Robot(MujocoEnv):
 
     def __init__(
         self,
-        model_path="fr3_reach.xml", #"fr3_w_hand.xml"
+        model_path="fr3_reach.xml",
         frame_skip=40,
         robot_noise_ratio: float = 0.01,
         default_camera_config: dict = DEFAULT_CAMERA_CONFIG,

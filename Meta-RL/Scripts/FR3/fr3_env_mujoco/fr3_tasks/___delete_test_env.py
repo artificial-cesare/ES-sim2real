@@ -4,7 +4,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fr3_robot')))
 
-from frankafr3_env import FrankaFR3Robot
+from fr3_env import FrankaFR3Robot
 
 env = FrankaFR3Robot(render_mode='human')
 env.reset()

@@ -8,7 +8,7 @@ ie: the location of mujoco rendering in the conda env
 "C:\Users\cesar\miniconda3\envs\fr3_test\Lib\site-packages\gymnasium\envs\mujoco\mujoco_rendering.py"
 
 and change the add_overlay fn with:
-if mujoco.__version__ => "3.0.0":
+if mujoco.__version__ >= "3.0.0":
     self.add_overlay(
         bottomleft, "Solver iterations", str(self.data.solver_niter[0] + 1)
     )
