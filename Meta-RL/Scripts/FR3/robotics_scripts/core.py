@@ -6,7 +6,7 @@ from gymnasium import error
 
 
 class GoalEnv(gym.Env):
-    r"""A goal-based environment.
+    """A goal-based environment.
 
     It functions just as any regular Gymnasium environment but it imposes a required structure on the observation_space. More concretely,
     the observation space is required to contain at least three elements, namely `observation`, `desired_goal`, and `achieved_goal`.

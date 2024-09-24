@@ -23,7 +23,7 @@ def goal_distance(goal_a, goal_b):
     return np.linalg.norm(goal_a - goal_b, axis=-1)
 
 
-def get_base_fetch_env(RobotEnvClass: Union[MujocoRobotEnv]):
+def get_base_fetch_env(RobotEnvClass: MujocoRobotEnv):
     """Factory function that returns a BaseFetchEnv class that inherits
     from MujocoPyRobotEnv or MujocoRobotEnv depending on the mujoco python bindings.
     """

@@ -11,24 +11,22 @@ import numpy as np
 from gymnasium import spaces
 from gymnasium.envs.mujoco.mujoco_env import MujocoEnv
 
-"""
-from gymnasium_robotics.envs.franka_kitchen.utils import (
-    get_config_root_node,
-    
-    read_config_from_node,
-)
-"""
-#from gymnasium_robotics.utils.mujoco_utils import MujocoModelNames
-
 MAX_CARTESIAN_DISPLACEMENT = 0.2
 MAX_ROTATION_DISPLACEMENT = 0.5
 
 DEFAULT_CAMERA_CONFIG = {
-    "distance": 3,
-    "azimuth": 70.0,
-    "elevation": -35.0,
-    "lookat": np.array([0,0,1]), #np.array([-0.2, 0.5, 2.0]),
+    "distance": 2,
+    "azimuth": 90.0, 
+    "elevation": -14.0,
+    "lookat": np.array([1.3, 0.75, 0.4]), #np.array([-0.2, 0.5, 2.0]),
 }
+
+#imported from fetch reach
+def goal_distance(goal_a, goal_b):
+    assert goal_a.shape == goal_b.shape
+    return np.linalg.norm(goal_a - goal_b, axis=-1)
+
+
 
 class FrankaFR3Robot(MujocoEnv):
     metadata = {
@@ -57,7 +55,7 @@ class FrankaFR3Robot(MujocoEnv):
 
         # Watch out; this depends on the xml and the task (e.g., if we add camera obs, we will need a spaces.Dict space)
         observation_space = (
-            spaces.Box(low=-np.inf, high=np.inf, shape=(8,), dtype=np.float32),
+            spaces.Box(low=-np.inf, high=np.inf, shape=(8,), dtype=np.float32), #8 joints 
         )
 
         super().__init__(
