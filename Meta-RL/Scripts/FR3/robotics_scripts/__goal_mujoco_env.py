@@ -1,3 +1,5 @@
+## new code for goal-based environments for the fr3 robot
+
 import gym
 from gym import spaces, error
 from .mujoco_env import MujocoEnv

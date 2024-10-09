@@ -108,14 +108,14 @@ import os
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fr3_robot')))
-from core import GoalEnv
+from goal_mujoco_env import GoalMujocoEnv
 from frankafr3_env import FrankaFR3Robot
 
 ## TODO:
 # change goal
 # change reward
 
-class FR3Reach(GoalEnv, EzPickle):
+class FR3Reach(GoalEnv, EzPickle): #GoalEnv
     metadata = {
         "render_modes": [
             "human",

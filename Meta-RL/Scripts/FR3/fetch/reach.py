@@ -4,7 +4,6 @@ from gymnasium.utils.ezpickle import EzPickle
 
 from fetch_env import MujocoFetchEnv
 
-# Ensure we get the path separator correct on windows
 MODEL_XML_PATH = os.path.join("fetch", "reach.xml")
 
 
