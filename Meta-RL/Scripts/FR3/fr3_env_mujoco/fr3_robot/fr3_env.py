@@ -26,8 +26,6 @@ def goal_distance(goal_a, goal_b):
     assert goal_a.shape == goal_b.shape
     return np.linalg.norm(goal_a - goal_b, axis=-1)
 
-
-
 class FrankaFR3Robot(MujocoEnv):
     metadata = {
         "render_modes": [

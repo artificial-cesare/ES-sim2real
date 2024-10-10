@@ -1,4 +1,13 @@
 # adapted from reach.py in fetch envs from gym-robotics
+
+import os
+
+from gymnasium.utils.ezpickle import EzPickle
+
+from robotics_scripts.__goal_mujoco_env import GoalMujocoEnv
+
+MODEL_XML_PATH = r"C:\Users\cesar\OneDrive\Documenti\GitHub\ES-sim2real\Meta-RL\Scripts\FR3\fr3_env_mujoco\fr3_robot\fr3_reach.xml"
+
 """
 The task in the environment is for a manipulator to move the end effector to a randomly selected position in the robot's workspace. The robot is a 7-DoF [Fetch Mobile Manipulator](https://fetchrobotics.com/) with a two-fingered parallel gripper.
 The robot is controlled by small displacements of the gripper in Cartesian coordinates and the inverse kinematics are computed internally by the MuJoCo framework. The task is also continuing which means that the robot has to maintain the end effector's
@@ -100,22 +109,12 @@ gym.register_envs(gymnasium_robotics)
 env = gym.make('FetchReach-v3', max_episode_steps=100)
 ```
 """
-import numpy as np
-from gymnasium import spaces
-from gymnasium.utils.ezpickle import EzPickle
-
-import os
-import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fr3_robot')))
-from goal_mujoco_env import GoalMujocoEnv
-from frankafr3_env import FrankaFR3Robot
 
 ## TODO:
 # change goal
 # change reward
 
-class FR3Reach(GoalEnv, EzPickle): #GoalEnv
+class FR3Reach(GoalMujocoEnv, EzPickle): #GoalEnv
     metadata = {
         "render_modes": [
             "human",
@@ -135,7 +134,7 @@ class FR3Reach(GoalEnv, EzPickle): #GoalEnv
     ):
         self.robot_env = FrankaFR3Robot(
             # to change with fr3_reach.xml 
-            model_path= r"C:\Users\cesar\OneDrive\Desktop\Meta-RL\Scripts\FR3\franka_env_mujoco\fr3_robot\fr3_w_hand.xml",
+            model_path= MODEL_XML_PATH,
             **kwargs,
         )
 
