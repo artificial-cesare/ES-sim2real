@@ -6,10 +6,17 @@ Modified from gymnasium-robotics FrankaRobotEnv to use the Franka FR3 robot inst
 # and in any case, add xyz position and orientation of EE using forward kinematics (possibly also with noise)
 
 from os import path
+import os
+import sys 
 
 import numpy as np
 from gymnasium import spaces
 from gymnasium.envs.mujoco.mujoco_env import MujocoEnv
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from robotics_scripts.mujoco_utils import MujocoModelNames, robot_get_obs
+
+from robotics_scripts.__goal_mujoco_env import GoalMujocoEnv
 
 MAX_CARTESIAN_DISPLACEMENT = 0.2
 MAX_ROTATION_DISPLACEMENT = 0.5
@@ -21,12 +28,7 @@ DEFAULT_CAMERA_CONFIG = {
     "lookat": np.array([1.3, 0.75, 0.4]), #np.array([-0.2, 0.5, 2.0]),
 }
 
-#imported from fetch reach
-def goal_distance(goal_a, goal_b):
-    assert goal_a.shape == goal_b.shape
-    return np.linalg.norm(goal_a - goal_b, axis=-1)
-
-class FrankaFR3Robot(MujocoEnv):
+class FrankaFR3Robot(GoalMujocoEnv):
     metadata = {
         "render_modes": [
             "human",
@@ -38,7 +40,7 @@ class FrankaFR3Robot(MujocoEnv):
 
     def __init__(
         self,
-        model_path="fr3_reach.xml",
+        model_path="fr3_w_hand.xml",
         frame_skip=40,
         robot_noise_ratio: float = 0.01,
         default_camera_config: dict = DEFAULT_CAMERA_CONFIG,
@@ -52,6 +54,7 @@ class FrankaFR3Robot(MujocoEnv):
         self.robot_noise_ratio = robot_noise_ratio
 
         # Watch out; this depends on the xml and the task (e.g., if we add camera obs, we will need a spaces.Dict space)
+        # 8 joints (do we need a hand joint?)
         observation_space = (
             spaces.Box(low=-np.inf, high=np.inf, shape=(8,), dtype=np.float32), #8 joints 
         )
@@ -68,9 +71,8 @@ class FrankaFR3Robot(MujocoEnv):
         self.init_qvel = self.data.qvel
 
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(8,), dtype=np.float64) # this is the observation space in fetch reach
-        #self.model_names = MujocoModelNames(self.model)
+        #self.model_names = MujocoModelNames(self.model) # test with the imported fn as well
         self.joint_names = ['fr3_joint1', 'fr3_joint2', 'fr3_joint3', 'fr3_joint4', 'fr3_joint5', 'fr3_joint6', 'fr3_joint7', 'finger_joint1']
-
 
         self.robot_pos_bound = np.zeros([len(self.joint_names), 2], dtype=float)
         self.robot_vel_bound = np.ones([len(self.joint_names), 2], dtype=float)
@@ -113,18 +115,18 @@ class FrankaFR3Robot(MujocoEnv):
             robot_qpos = np.squeeze(np.array([self.data.joint(name).qpos for name in self.joint_names]))
             robot_qvel = np.squeeze(np.array([self.data.joint(name).qvel for name in self.joint_names]))
         else:
-            robot_qpos = np.zeros(9)
-            robot_qvel = np.zeros(9)
+            robot_qpos = np.zeros(8) # find info at https://mujoco.readthedocs.io/en/stable/APIreference/APItypes.html#data
+            robot_qvel = np.zeros(8)
 
         # Simulate observation noise
         robot_qpos += (
             self.robot_noise_ratio
-            * self.robot_pos_noise_amp[:9]
+            * self.robot_pos_noise_amp
             * self.np_random.uniform(low=-1.0, high=1.0, size=robot_qpos.shape)
         )
         robot_qvel += (
             self.robot_noise_ratio
-            * self.robot_vel_noise_amp[:9]
+            * self.robot_vel_noise_amp
             * self.np_random.uniform(low=-1.0, high=1.0, size=robot_qvel.shape)
         )
 
