@@ -53,19 +53,26 @@ class FrankaFR3Robot(GoalMujocoEnv):
 
         self.robot_noise_ratio = robot_noise_ratio
 
-        # Watch out; this depends on the xml and the task (e.g., if we add camera obs, we will need a spaces.Dict space)
-        # 8 joints (do we need a hand joint?)
-        observation_space = (
-            spaces.Box(low=-np.inf, high=np.inf, shape=(8,), dtype=np.float32), #8 joints 
-        )
-
         super().__init__(
             xml_file_path,
             frame_skip,
-            observation_space,
             default_camera_config=default_camera_config,
             **kwargs,
         )
+
+        """
+        initialize goalmujocoenv: 
+        model_path: str,
+        frame_skip: int,
+        render_mode: Optional[str] = None,
+        width: int = 640,
+        height: int = 480,
+        camera_id: Optional[int] = None,
+        camera_name: Optional[str] = None,
+        default_camera_config: Optional[Dict[str, Union[float, int]]] = None,
+        max_geom: int = 1000,
+        visual_options: Dict[int, bool] = {},
+        """
 
         self.init_qpos = self.data.qpos
         self.init_qvel = self.data.qvel

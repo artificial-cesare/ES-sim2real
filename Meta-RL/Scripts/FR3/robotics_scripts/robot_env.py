@@ -70,7 +70,7 @@ class BaseRobotEnv(GoalEnv):
 
         self.goal = np.zeros(0)
         obs = self._get_obs()
-
+        
         assert (
             int(np.round(1.0 / self.dt)) == self.metadata["render_fps"]
         ), f'Expected value: {int(np.round(1.0 / self.dt))}, Actual value: {self.metadata["render_fps"]}'
@@ -200,6 +200,9 @@ class BaseRobotEnv(GoalEnv):
 
     def _get_obs(self):
         """Returns the observation."""
+        # from farama doc
+        """def _get_obs(self):
+        return {"agent": self._agent_location, "target": self._target_location}""" 
         raise NotImplementedError()
 
     def _set_action(self, action):
