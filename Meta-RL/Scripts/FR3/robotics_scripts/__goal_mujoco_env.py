@@ -1,20 +1,53 @@
 ## new code for goal-based environments for the fr3 robot
 
 import gymnasium as gym
-from gymnasium import spaces, error
-import mujoco
+from gymnasium import error, spaces
+from gymnasium.spaces import Space
+
 from .mujoco_env import MujocoEnv
 from .core import GoalEnv
+from robotics_scripts import rotations
 from typing import Optional, Dict, Union, Tuple, Any
 import numpy as np
 
 class GoalMujocoEnv(GoalEnv, MujocoEnv):
-    """A goal-based environment that uses MuJoCo for simulation."""
+    """
+    A goal-based environment that uses MuJoCo for simulation.
+
+        Args:
+            model_path: Path to the MuJoCo Model.
+            frame_skip: Number of MuJoCo simulation steps per gym `step()`.
+            observation_space: The observation space of the environment.
+            render_mode: The `render_mode` used.
+            width: The width of the render window.
+            height: The height of the render window.
+            camera_id: The camera ID used.
+            camera_name: The name of the camera used (can not be used in conjunction with `camera_id`).
+            default_camera_config: configuration for rendering camera.
+            max_geom: max number of rendered geometries.
+            visual_options: render flag options.
+
+        Raises:
+            OSError: when the `model_path` does not exist.
+            error.DependencyNotInstalled: When `mujoco` is not installed.
+    """
+    metadata = {
+        "render_modes": [
+            "human",
+            "rgb_array",
+            "depth_array",
+        ],
+        "render_fps": 12,
+    }
 
     def __init__(
         self,
+        seed,
         model_path: str,
         frame_skip: int,
+        has_object: bool,
+        n_substeps: int, #n_substeps (integer): number of MuJoCo simulation timesteps per Gymnasium step.
+        observation_space: Optional[Space],
         render_mode: Optional[str] = None,
         width: int = 640,
         height: int = 480,
@@ -23,13 +56,14 @@ class GoalMujocoEnv(GoalEnv, MujocoEnv):
         default_camera_config: Optional[Dict[str, Union[float, int]]] = None,
         max_geom: int = 1000,
         visual_options: Dict[int, bool] = {},
+        robot_noise_ratio: float = 0.01, #robot_noise_ratio (float): ratio of noise to add to robot observations.
     ):
         # Initialize MujocoEnv
         MujocoEnv.__init__(
             self,
             model_path=model_path,
             frame_skip=frame_skip,
-            observation_space=None,  # Will be set later
+            observation_space=Optional[Space],  # Will be set later
             render_mode=render_mode,
             width=width,
             height=height,
@@ -40,13 +74,146 @@ class GoalMujocoEnv(GoalEnv, MujocoEnv):
             visual_options=visual_options,
         )
 
-        self._initialize_simulation()
+        # Initialize GoalEnv
+        GoalEnv.__init__(self)
 
         self.goal = np.zeros(0)
+
+        self.has_object = has_object
+        self.joint_names = ['fr3_joint1', 'fr3_joint2', 'fr3_joint3', 'fr3_joint4', 'fr3_joint5', 'fr3_joint6', 'fr3_joint7', 'finger_joint1']
+        self.n_substeps = n_substeps
+        self.robot_noise_ratio = robot_noise_ratio
+        self.np_random = np.random.RandomState(seed=seed)
+
+        self.robot_pos_noise_amp = {
+            'grip_pos': np.array([0.01, 0.01, 0.01]),
+            'object_pos': np.array([0.01, 0.01, 0.01]),
+            'object_rel_pos': np.array([0.005, 0.005, 0.005]),
+            'gripper_state': np.array([0.02, 0.02]),
+            'object_rot': np.array([0.05, 0.05, 0.05]),
+            'object_velp': np.array([0.02, 0.02, 0.02]),
+            'object_velr': np.array([0.05, 0.05, 0.05]),
+            'grip_velp': np.array([0.02, 0.02, 0.02]),
+            'gripper_vel': np.array([0.02, 0.02]),
+        }
+        
+
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(9,), dtype=np.float64)
         obs = self._get_obs()
 
         # Define the observation space as required by GoalEnv
         self._set_observation_space(obs)
+
+    def _get_obs(self):
+        (
+            grip_pos,
+            object_pos,
+            object_rel_pos,
+            gripper_state,
+            object_rot,
+            object_velp,
+            object_velr,
+            grip_velp,
+            gripper_vel,
+
+        ) = self.generate_mujoco_observations()
+
+        if not self.has_object:
+            achieved_goal = grip_pos.copy()
+        else:
+            achieved_goal = np.squeeze(object_pos.copy())
+
+        obs = np.concatenate(
+            [
+                grip_pos,
+                object_pos.ravel(),
+                object_rel_pos.ravel(),
+                gripper_state,
+                object_rot.ravel(),
+                object_velp.ravel(),
+                object_velr.ravel(),
+                grip_velp,
+                gripper_vel,
+            ]
+        )
+
+        return {
+            "observation": obs.copy(),
+            "achieved_goal": achieved_goal.copy(),
+            "desired_goal": self.goal.copy(),
+        }
+    
+    def generate_mujoco_observations(self):
+    # Updated from fetch to fr3, the grip site name from "robot0:grip" to "hand_c"
+        grip_site_name = "hand_c"
+        grip_pos = self._utils.get_site_xpos(self.model, self.data, grip_site_name)
+
+        dt = self.n_substeps * self.model.opt.timestep
+        grip_velp = self._utils.get_site_xvelp(self.model, self.data, grip_site_name) * dt
+
+        # Update joint names to match the new fr3 model
+        # Include all relevant joints, especially the finger joints
+        robot_qpos, robot_qvel = self._utils.robot_get_obs(
+            self.model, self.data, self.joint_names
+        )
+
+        if self.has_object:
+            # Ensure the object site name matches the new model
+            # If the object site has a different name, update it accordingly
+            object_site_name = "object0"
+            object_pos = self._utils.get_site_xpos(self.model, self.data, object_site_name)
+            
+            # Rotations
+            object_rot = rotations.mat2euler(
+                self._utils.get_site_xmat(self.model, self.data, object_site_name)
+            )
+            
+            # Velocities
+            object_velp = self._utils.get_site_xvelp(self.model, self.data, object_site_name) * dt
+            object_velr = self._utils.get_site_xvelr(self.model, self.data, object_site_name) * dt
+            
+            # Gripper state relative to the object
+            object_rel_pos = object_pos - grip_pos
+            object_velp -= grip_velp
+        else:
+            object_pos = object_rot = object_velp = object_velr = object_rel_pos = np.zeros(0)
+
+        # Assuming the last two joints are the finger joints
+        gripper_state = robot_qpos[-2:]
+        gripper_vel = robot_qvel[-2:] * dt  # Optionally, average if symmetric
+
+        # **Add Noise to Observations**
+
+        # Define a helper function to add noise
+        def add_noise(obs):
+            if obs.size > 0:
+                noise = self.robot_noise_ratio * self.robot_pos_noise_amp * \
+                        self.np_random.uniform(low=-1.0, high=1.0, size=obs.shape)
+                return obs + noise
+            return obs
+
+        # Apply noise to each observation component
+        grip_pos_noisy = add_noise(grip_pos)
+        object_pos_noisy = add_noise(object_pos)
+        object_rel_pos_noisy = add_noise(object_rel_pos)
+        gripper_state_noisy = add_noise(gripper_state)
+        object_rot_noisy = add_noise(object_rot)
+        object_velp_noisy = add_noise(object_velp)
+        object_velr_noisy = add_noise(object_velr)
+        grip_velp_noisy = add_noise(grip_velp)
+        gripper_vel_noisy = add_noise(gripper_vel)
+
+        return (
+            grip_pos_noisy,
+            object_pos_noisy,
+            object_rel_pos_noisy,
+            gripper_state_noisy,
+            object_rot_noisy,
+            object_velp_noisy,
+            object_velr_noisy,
+            grip_velp_noisy,
+            gripper_vel_noisy,
+        )
 
     def _set_observation_space(self, obs):
         """Set up the observation space according to GoalEnv specifications."""
@@ -64,19 +231,6 @@ class GoalMujocoEnv(GoalEnv, MujocoEnv):
                 ),
             )
         )
-    
-    def _initialize_simulation(self):
-        self.model = self._mujoco.MjModel.from_xml_path(self.model_path)
-        self.data = self._mujoco.MjData(self.model)
-        self._model_names = self._utils.MujocoModelNames(self.model)
-
-        self.model.vis.global_.offwidth = self.width
-        self.model.vis.global_.offheight = self.height
-
-        self._env_setup(initial_qpos=self.initial_qpos)
-        self.initial_time = self.data.time
-        self.initial_qpos = np.copy(self.data.qpos)
-        self.initial_qvel = np.copy(self.data.qvel)
 
     def reset(
         self,
@@ -113,18 +267,6 @@ class GoalMujocoEnv(GoalEnv, MujocoEnv):
         self.set_state(self.init_qpos, self.init_qvel)
         observation = self._get_obs()
         return observation
-
-    def _get_obs(self) -> Dict[str, np.ndarray]:
-        """Get the current observation."""
-        # Replace with actual observation logic
-        observation = np.concatenate([self.data.qpos.flat, self.data.qvel.flat])
-        achieved_goal = self._get_achieved_goal()
-        desired_goal = self._get_desired_goal()
-        return {
-            'observation': observation,
-            'achieved_goal': achieved_goal,
-            'desired_goal': desired_goal,
-        }
 
     def _get_achieved_goal(self) -> np.ndarray:
         """Get the current achieved goal."""
@@ -248,94 +390,3 @@ class GoalMujocoEnv(GoalEnv, MujocoEnv):
         """Close the environment."""
         MujocoEnv.close(self)
 
-    def _get_obs(self):
-        (
-            grip_pos,
-            object_pos,
-            object_rel_pos,
-            gripper_state,
-            object_rot,
-            object_velp,
-            object_velr,
-            grip_velp,
-            gripper_vel,
-        ) = self.generate_mujoco_observations()
-
-        if not self.has_object:
-            achieved_goal = grip_pos.copy()
-        else:
-            achieved_goal = np.squeeze(object_pos.copy())
-
-        obs = np.concatenate(
-            [
-                grip_pos,
-                object_pos.ravel(),
-                object_rel_pos.ravel(),
-                gripper_state,
-                object_rot.ravel(),
-                object_velp.ravel(),
-                object_velr.ravel(),
-                grip_velp,
-                gripper_vel,
-            ]
-        )
-
-        return {
-            "observation": obs.copy(),
-            "achieved_goal": achieved_goal.copy(),
-            "desired_goal": self.goal.copy(),
-        }
-
-def generate_mujoco_observations(self):
-        # positions
-        grip_pos = self._utils.get_site_xpos(self.model, self.data, "robot0:grip")
-
-        dt = self.n_substeps * self.model.opt.timestep
-        grip_velp = (
-            self._utils.get_site_xvelp(self.model, self.data, "robot0:grip") * dt
-        )
-
-        robot_qpos, robot_qvel = self._utils.robot_get_obs(
-            self.model, self.data, self._model_names.joint_names
-        )
-        if self.has_object:
-            object_pos = self._utils.get_site_xpos(self.model, self.data, "object0")
-            # rotations
-            object_rot = rotations.mat2euler(
-                self._utils.get_site_xmat(self.model, self.data, "object0")
-            )
-            # velocities
-            object_velp = (
-                self._utils.get_site_xvelp(self.model, self.data, "object0") * dt
-            )
-            object_velr = (
-                self._utils.get_site_xvelr(self.model, self.data, "object0") * dt
-            )
-            # gripper state
-            object_rel_pos = object_pos - grip_pos
-            object_velp -= grip_velp
-        else:
-            object_pos = (
-                object_rot
-            ) = object_velp = object_velr = object_rel_pos = np.zeros(0)
-        gripper_state = robot_qpos[-2:]
-
-        gripper_vel = (
-            robot_qvel[-2:] * dt
-        )  # change to a scalar if the gripper is made symmetric
-
-        return (
-            grip_pos,
-            object_pos,
-            object_rel_pos,
-            gripper_state,
-            object_rot,
-            object_velp,
-            object_velr,
-            grip_velp,
-            gripper_vel,
-        )
-
-def _get_gripper_xpos(self):
-    body_id = self._model_names.body_name2id["robot0:gripper_link"]
-    return self.data.xpos[body_id]

@@ -29,14 +29,6 @@ DEFAULT_CAMERA_CONFIG = {
 }
 
 class FrankaFR3Robot(GoalMujocoEnv):
-    metadata = {
-        "render_modes": [
-            "human",
-            "rgb_array",
-            "depth_array",
-        ],
-        "render_fps": 12,
-    }
 
     def __init__(
         self,
@@ -50,8 +42,6 @@ class FrankaFR3Robot(GoalMujocoEnv):
             path.dirname(__file__),
             model_path,
         )
-
-        self.robot_noise_ratio = robot_noise_ratio
 
         super().__init__(
             xml_file_path,
@@ -74,13 +64,13 @@ class FrankaFR3Robot(GoalMujocoEnv):
         visual_options: Dict[int, bool] = {},
         """
 
-        self.init_qpos = self.data.qpos
-        self.init_qvel = self.data.qvel
+        #self.init_qpos = self.data.qpos
+        #self.init_qvel = self.data.qvel
 
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(8,), dtype=np.float64) # this is the observation space in fetch reach
+        #self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(8,), dtype=np.float64) # this is the observation space in fetch reach
         #self.model_names = MujocoModelNames(self.model) # test with the imported fn as well
-        self.joint_names = ['fr3_joint1', 'fr3_joint2', 'fr3_joint3', 'fr3_joint4', 'fr3_joint5', 'fr3_joint6', 'fr3_joint7', 'finger_joint1']
-
+        
+        self.robot_noise_ratio = robot_noise_ratio
         self.robot_pos_bound = np.zeros([len(self.joint_names), 2], dtype=float)
         self.robot_vel_bound = np.ones([len(self.joint_names), 2], dtype=float)
         self.robot_pos_noise_amp = 0.1 * np.ones(len(self.joint_names), dtype=float)
@@ -95,6 +85,15 @@ class FrankaFR3Robot(GoalMujocoEnv):
 
         self.act_mid = np.mean(self.robot_pos_bound, axis=1)
         self.act_rng = 0.5 * (self.robot_pos_bound[:, 1] - self.robot_pos_bound[:, 0])
+
+
+    """
+    def _set_action_space(self):
+        bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
+        low, high = bounds.T
+        self.action_space = spaces.Box(low=low, high=high, dtype=np.float32)
+        return self.action_space
+    """
 
     def step(self, action):
         action = np.clip(action, -1.0, 1.0)
