@@ -11,10 +11,8 @@ import sys
 
 import numpy as np
 from gymnasium import spaces
-from gymnasium.envs.mujoco.mujoco_env import MujocoEnv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from robotics_scripts.mujoco_utils import MujocoModelNames, robot_get_obs
 
 from robotics_scripts.__goal_mujoco_env import GoalMujocoEnv
 

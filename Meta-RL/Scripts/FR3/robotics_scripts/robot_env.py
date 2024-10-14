@@ -51,12 +51,16 @@ class BaseRobotEnv(GoalEnv):
             width (optional integer): width of each rendered frame. Defaults to DEFAULT_SIZE.
             height (optional integer): height of each rendered frame . Defaults to DEFAULT_SIZE.
         """
+        self.fullpath = model_path
+        # was giving import errors
+        """
         if model_path.startswith("/"):
             self.fullpath = model_path
         else:
             self.fullpath = os.path.join(
                 os.path.dirname(__file__), "assets", model_path
             )
+        """
         if not os.path.exists(self.fullpath):
             raise OSError(f"File {self.fullpath} does not exist")
 

@@ -70,7 +70,8 @@ class MujocoEnv(gym.Env):
             OSError: when the `model_path` does not exist.
             error.DependencyNotInstalled: When `mujoco` is not installed.
         """
-        self.fullpath = expand_model_path(model_path)
+        #self.fullpath = expand_model_path(model_path) # Commented out to avoid error
+        self.fullpath = r"C:\Users\cesar\OneDrive\Documenti\GitHub\ES-sim2real\Meta-RL\Scripts\FR3\fr3_env_mujoco\fr3_robot\fr3_w_hand.xml"
 
         self.width = width
         self.height = height

@@ -4,7 +4,9 @@ import gymnasium as gym
 from gymnasium import error, spaces
 from gymnasium.spaces import Space
 
-from .mujoco_env import MujocoEnv
+
+
+from mujoco_env import MujocoEnv
 from .core import GoalEnv
 from robotics_scripts import rotations
 from typing import Optional, Dict, Union, Tuple, Any
@@ -85,6 +87,7 @@ class GoalMujocoEnv(GoalEnv, MujocoEnv):
         self.robot_noise_ratio = robot_noise_ratio
         self.np_random = np.random.RandomState(seed=seed)
 
+        ## might need to change as defined in franka_config.xml
         self.robot_pos_noise_amp = {
             'grip_pos': np.array([0.01, 0.01, 0.01]),
             'object_pos': np.array([0.01, 0.01, 0.01]),
@@ -287,8 +290,24 @@ class GoalMujocoEnv(GoalEnv, MujocoEnv):
     def step(
         self, action: np.ndarray
     ) -> Tuple[Dict[str, Any], float, bool, bool, Dict[str, Any]]:
-        """Perform a simulation step."""
-        # Apply action
+        """Run one timestep of the environment's dynamics using the agent actions.
+
+        Args:
+            action (np.ndarray): Control action to be applied to the agent and update the simulation. Should be of shape :attr:`action_space`.
+
+        Returns:
+            observation (dictionary): Next observation due to the agent actions .It should satisfy the `GoalEnv` :attr:`observation_space`.
+            reward (integer): The reward as a result of taking the action. This is calculated by :meth:`compute_reward` of `GoalEnv`.
+            terminated (boolean): Whether the agent reaches the terminal state. This is calculated by :meth:`compute_terminated` of `GoalEnv`.
+            truncated (boolean): Whether the truncation condition outside the scope of the MDP is satisfied. Timically, due to a timelimit, but
+            it is also calculated in :meth:`compute_truncated` of `GoalEnv`.
+            info (dictionary): Contains auxiliary diagnostic information (helpful for debugging, learning, and logging). In this case there is a single
+            key `is_success` with a boolean value, True if the `achieved_goal` is the same as the `desired_goal`.
+        """
+        
+        action = np.clip(action, self.action_space.low, self.action_space.high)
+        
+        # Apply action, from mujoco env
         self.do_simulation(action, self.frame_skip)
         
         # Get observation
@@ -301,7 +320,9 @@ class GoalMujocoEnv(GoalEnv, MujocoEnv):
         terminated = self.compute_terminated(obs['achieved_goal'], obs['desired_goal'], {})
         truncated = self.compute_truncated(obs['achieved_goal'], obs['desired_goal'], {})
         
-        info = {}
+        info = {
+            "is_success": self._is_success(obs["achieved_goal"], self.goal),
+        }
         return obs, reward, terminated, truncated, info
 
     def compute_reward(self, achieved_goal, desired_goal, info):
