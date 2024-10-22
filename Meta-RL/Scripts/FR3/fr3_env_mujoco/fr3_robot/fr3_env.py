@@ -6,18 +6,14 @@ Modified from gymnasium-robotics FrankaRobotEnv to use the Franka FR3 robot inst
 # and in any case, add xyz position and orientation of EE using forward kinematics (possibly also with noise)
 
 from os import path
-import os
-import sys 
-
 import numpy as np
+
+import mujoco
+
+from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium import spaces
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from robotics_scripts.__goal_mujoco_env import GoalMujocoEnv
-
-MAX_CARTESIAN_DISPLACEMENT = 0.2
-MAX_ROTATION_DISPLACEMENT = 0.5
 
 DEFAULT_CAMERA_CONFIG = {
     "distance": 2,
@@ -26,72 +22,66 @@ DEFAULT_CAMERA_CONFIG = {
     "lookat": np.array([1.3, 0.75, 0.4]), #np.array([-0.2, 0.5, 2.0]),
 }
 
-class FrankaFR3Robot(GoalMujocoEnv):
+class FrankaFR3Robot(MujocoEnv):
+    metadata = {
+        "render_modes": [
+            "human",
+            "rgb_array",
+            "depth_array",
+        ],
+        "render_fps": 10,
+    }
 
     def __init__(
         self,
         model_path="fr3_w_hand.xml",
-        frame_skip=40,
-        robot_noise_ratio: float = 0.01,
-        default_camera_config: dict = DEFAULT_CAMERA_CONFIG,
-        **kwargs,
+        frame_skip=50,   # default 50 steps = 100ms = 10Hz  (ok for gripper manipulation; perhaps aim at 20-30Hz for Tilburg Hand)
+        robot_noise_ratio: float = 0.01,   # TODO: later on we will need to calibrate this
+        time_limit=10.0, # 10 seconds
+        **kwargs,   # render_mode, width, heigth, camera_id, camera_name
     ):
-        xml_file_path = path.join(
+        self.xml_file_path = path.join(
             path.dirname(__file__),
             model_path,
         )
 
-        super().__init__(
-            xml_file_path,
-            frame_skip,
-            default_camera_config=default_camera_config,
-            **kwargs,
-        )
+        # TODO: add argument for tilburg-hand vs franka-gripper;  in case, the default model path is different, tasks need a different file as well, and joint/actuator names will be different
 
-        """
-        initialize goalmujocoenv: 
-        model_path: str,
-        frame_skip: int,
-        render_mode: Optional[str] = None,
-        width: int = 640,
-        height: int = 480,
-        camera_id: Optional[int] = None,
-        camera_name: Optional[str] = None,
-        default_camera_config: Optional[Dict[str, Union[float, int]]] = None,
-        max_geom: int = 1000,
-        visual_options: Dict[int, bool] = {},
-        """
-
-        #self.init_qpos = self.data.qpos
-        #self.init_qvel = self.data.qvel
-
-        #self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(8,), dtype=np.float64) # this is the observation space in fetch reach
-        #self.model_names = MujocoModelNames(self.model) # test with the imported fn as well
-        
+        self.frame_skip = frame_skip
         self.robot_noise_ratio = robot_noise_ratio
+        self.time_limit_steps = int(time_limit * 1000 / frame_skip / 2 )
+        self.current_step = 0
+
+        self.joint_names = ['fr3_joint1', 'fr3_joint2', 'fr3_joint3', 'fr3_joint4', 'fr3_joint5', 'fr3_joint6', 'fr3_joint7', 'finger_joint1']
+        self.actuator_names = ['actuator_joint1', 'actuator_joint2', 'actuator_joint3', 'actuator_joint4', 'actuator_joint5', 'actuator_joint6', 'actuator_joint7', 'actuator_gripper']
+
+        # HACKY: temporarily pre-load the model to get joint limits and observation
+        self.model = mujoco.MjModel.from_xml_path(self.xml_file_path)
+        self.data = mujoco.MjData(self.model)
+
         self.robot_pos_bound = np.zeros([len(self.joint_names), 2], dtype=float)
-        self.robot_vel_bound = np.ones([len(self.joint_names), 2], dtype=float)
-        self.robot_pos_noise_amp = 0.1 * np.ones(len(self.joint_names), dtype=float)
-        self.robot_vel_noise_amp = 0.1 * np.ones(len(self.joint_names), dtype=float)
+        #self.robot_vel_bound = np.ones([len(self.joint_names), 2], dtype=float)
+        self.robot_pos_noise_amp = 1 * np.ones(len(self.joint_names), dtype=float) ### TODO: CHECK
+        self.robot_vel_noise_amp = 1 * np.ones(len(self.joint_names), dtype=float) ### TODO: CHECK
 
-        self.robot_vel_bound[:, 0] = -10.0
-        self.robot_vel_bound[:, 1] = 10.0
+        #self.robot_vel_bound[:, 0] = -10.0
+        #self.robot_vel_bound[:, 1] = 10.0
 
-        for i in range(len(self.joint_names)):
-            self.robot_pos_bound[i, 0] = self.model.joint(name=self.joint_names[i]).range[0]
-            self.robot_pos_bound[i, 1] = self.model.joint(name=self.joint_names[i]).range[1]
+        for i in range(len(self.actuator_names)):
+            self.robot_pos_bound[i, 0] = self.model.actuator(name=self.actuator_names[i]).ctrlrange[0]
+            self.robot_pos_bound[i, 1] = self.model.actuator(name=self.actuator_names[i]).ctrlrange[1]
 
         self.act_mid = np.mean(self.robot_pos_bound, axis=1)
         self.act_rng = 0.5 * (self.robot_pos_bound[:, 1] - self.robot_pos_bound[:, 0])
 
+        super().__init__(
+            self.xml_file_path,
+            self.frame_skip,
+            observation_space=spaces.Box(low=-np.inf, high=np.inf, shape=self._get_obs().shape, dtype=np.float32),
+            **kwargs,
+        )
+        self.action_space = spaces.Box(low=-1., high=1., shape=self.action_space.shape, dtype=np.float32)
 
-    """
-    def _set_action_space(self):
-        bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
-        low, high = bounds.T
-        self.action_space = spaces.Box(low=low, high=high, dtype=np.float32)
-        return self.action_space
-    """
 
     def step(self, action):
         action = np.clip(action, -1.0, 1.0)
@@ -99,19 +89,22 @@ class FrankaFR3Robot(GoalMujocoEnv):
         # Denormalize the input action from [-1, 1] range to the each actuators control range
         action = self.act_mid + action * self.act_rng
 
-        # enforce velocity limits
-        ctrl_feasible = self._ctrl_velocity_limits(action)
-        # enforce position limits
-        ctrl_feasible = self._ctrl_position_limits(ctrl_feasible)
-
-        self.do_simulation(ctrl_feasible, self.frame_skip)
+        self.do_simulation(action, self.frame_skip)
 
         if self.render_mode == "human":
             self.render()
 
         obs = self._get_obs()
 
-        return obs, 0.0, False, False, {}
+        terminated = False
+        truncated = False
+    
+        self.current_step += 1
+        if self.current_step >= self.time_limit_steps:
+            truncated = True
+
+        return obs, 0.0, terminated, truncated, {}
+
 
     def _get_obs(self):
         # Gather simulated observation
@@ -134,46 +127,28 @@ class FrankaFR3Robot(GoalMujocoEnv):
             * self.np_random.uniform(low=-1.0, high=1.0, size=robot_qvel.shape)
         )
 
-        self._last_robot_qpos = robot_qpos
-
         return np.concatenate((robot_qpos.copy(), robot_qvel.copy()))
 
+
     def reset_model(self):
-        qpos = self.init_qpos
-        qvel = self.init_qvel
+        # TODO: introduce randomizations in initial pos and vel
+
+        self.current_step = 0
+
+        qpos = self.np_random.uniform(low=-0.1, high=0.1, size=(9,))
+        qpos[-1] = qpos[-2] # 2 fingers; only for fr3's default gripper
+        qvel = np.zeros(9)
         self.set_state(qpos, qvel)
         obs = self._get_obs()
 
         return obs
 
-    def _ctrl_velocity_limits(self, ctrl_velocity: np.ndarray):
-        """Enforce velocity limits and estimate joint position control input (to achieve the desired joint velocity).
 
-        ALERT: This depends on previous observation. This is not ideal as it breaks MDP assumptions. This is the original
-        implementation from the D4RL environment: https://github.com/Farama-Foundation/D4RL/blob/71a9549f2091accff93eeff68f1f3ab2c0e0a288/d4rl/kitchen/adept_envs/franka/robot/franka_robot.py#L259.
-
-        Args:
-            ctrl_velocity (np.ndarray): environment action with space: Box(low=-1.0, high=1.0, shape=(9,))
-
-        Returns:
-            ctrl_position (np.ndarray): input joint position given to the MuJoCo simulation actuators.
-        """
-        ctrl_feasible_vel = np.clip(
-            ctrl_velocity, self.robot_vel_bound[:9, 0], self.robot_vel_bound[:9, 1]
-        )
-        ctrl_feasible_position = self._last_robot_qpos + ctrl_feasible_vel * self.dt
-        return ctrl_feasible_position
-
-    def _ctrl_position_limits(self, ctrl_position: np.ndarray):
-        """Enforce joint position limits.
-
-        Args:
-            ctrl_position (np.ndarray): unbounded joint position control input .
-
-        Returns:
-            ctrl_feasible_position (np.ndarray): clipped joint position control input.
-        """
-        ctrl_feasible_position = np.clip(
-            ctrl_position, self.robot_pos_bound[:9, 0], self.robot_pos_bound[:9, 1]
-        )
-        return ctrl_feasible_position
+if __name__ == "__main__":
+    env = FrankaFR3Robot(render_mode='human')
+    import time
+    st = time.time()
+    while time.time()-st < 5.0:
+        env.step(env.action_space.sample())
+        env.render()
+    env.close()

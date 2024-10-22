@@ -13,26 +13,30 @@
       <default class="visual">
         <geom type="mesh" group="2" contype="0" conaffinity="0"/>
       </default>
+
+      <!-- begin hand -->
       <default class="collision">
         <geom type="mesh" group="3" mass="0" density="0"/>
         <default class="fingertip_pad_collision_1">
             <geom type="box" size="0.0085 0.004 0.0085" pos="0 0.0055 0.0445"/>
-            </default>
-            <default class="fingertip_pad_collision_2">
+        </default>
+        <default class="fingertip_pad_collision_2">
             <geom type="box" size="0.003 0.002 0.003" pos="0.0055 0.002 0.05"/>
-            </default>
-            <default class="fingertip_pad_collision_3">
+        </default>
+        <default class="fingertip_pad_collision_3">
             <geom type="box" size="0.003 0.002 0.003" pos="-0.0055 0.002 0.05"/>
-            </default>
-            <default class="fingertip_pad_collision_4">
+        </default>
+        <default class="fingertip_pad_collision_4">
             <geom type="box" size="0.003 0.002 0.0035" pos="0.0055 0.002 0.0395"/>
-            </default>
-            <default class="fingertip_pad_collision_5">
+        </default>
+        <default class="fingertip_pad_collision_5">
             <geom type="box" size="0.003 0.002 0.0035" pos="-0.0055 0.002 0.0395"/>
-            </default>
         </default>
-        </default>
+      </default>
+      <!-- end hand -->
+
     </default>
+  </default>
 
   <asset>
     <material name="black" rgba=".2 .2 .2 1"/>
@@ -95,7 +99,7 @@
   </asset>
 
   <worldbody>
-    <body name="base" childclass="fr3" pos="0 0 0.4">
+    <body name="base" childclass="fr3" pos="0 0 0">
       <body name="fr3_link0">
         <geom mesh="link0_0" material="black" class="visual"/>
         <geom mesh="link0_1" material="white" class="visual"/>
@@ -161,6 +165,9 @@
                       <geom mesh="link7_2" material="white" class="visual"/>
                       <geom mesh="link7_3" material="black" class="visual"/>
                       <geom name="fr3_link7_collision" class="collision" mesh="link7_coll"/>
+
+
+                      <!-- begin hand -->
                       <body name="hand" childclass="fr3" pos="0 0 0.107" quat="0.9238795 0 0 -0.3826834">
                         <inertial mass="0.73" pos="-0.01 0 0.03" diaginertia="0.001 0.0025 0.0017"/>
                         <geom mesh="hand_0" material="panda_off_white" class="visual"/>
@@ -168,8 +175,6 @@
                         <geom mesh="hand_2" material="panda_black" class="visual"/>
                         <geom mesh="hand_3" material="panda_white" class="visual"/>
                         <geom mesh="hand_4" material="panda_off_white" class="visual"/>
-
-                        <!-- hand starts here -->
                         <geom mesh="hand_c" class="collision"/>
                         <body name="left_finger" pos="0 0 0.0584">
                           <inertial mass="0.015" pos="0 0 0" diaginertia="2.375e-6 2.375e-6 7.5e-7"/>
@@ -195,9 +200,11 @@
                           <geom class="fingertip_pad_collision_4"/>
                           <geom class="fingertip_pad_collision_5"/>
                         </body>
-                        <!-- hand ends here -->
-
                       </body>
+                      <!-- end hand -->
+
+
+
                     </body>
                   </body>
                 </body>
@@ -234,8 +241,7 @@
     <position class="fr3" name="actuator_joint6" joint="fr3_joint6" kp="2000" kv="200"/>
     <position class="fr3" name="actuator_joint7" joint="fr3_joint7" kp="2000" kv="200"/>
 
-    <!-- Panda hand actuators TODO: for smoother control map to correct values -->
-    <!-- Remap original ctrlrange (0, 0.04) to (0, 255): 0.04 * 100 / 255 = 0.01568627451 -->
+    <!-- Panda hand actuators -->
     <general class="fr3" name="actuator_gripper" tendon="split" forcerange="-100 100" ctrlrange="0 255"
       gainprm="0.01568627451 0 0" biasprm="0 -100 -10"/>
   </actuator>
