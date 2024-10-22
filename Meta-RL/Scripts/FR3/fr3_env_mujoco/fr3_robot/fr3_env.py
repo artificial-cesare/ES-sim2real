@@ -38,6 +38,7 @@ class FrankaFR3Robot(MujocoEnv):
         frame_skip=50,   # default 50 steps = 100ms = 10Hz  (ok for gripper manipulation; perhaps aim at 20-30Hz for Tilburg Hand)
         robot_noise_ratio: float = 0.01,   # TODO: later on we will need to calibrate this
         time_limit=10.0, # 10 seconds
+        control_mode='joint', # 'joint' or 'cartesian'
         **kwargs,   # render_mode, width, heigth, camera_id, camera_name
     ):
         self.xml_file_path = path.join(
@@ -46,12 +47,14 @@ class FrankaFR3Robot(MujocoEnv):
         )
 
         # TODO: add argument for tilburg-hand vs franka-gripper;  in case, the default model path is different, tasks need a different file as well, and joint/actuator names will be different
+        self.control_mode = control_mode
 
         self.frame_skip = frame_skip
         self.robot_noise_ratio = robot_noise_ratio
         self.time_limit_steps = int(time_limit * 1000 / frame_skip / 2 )
         self.current_step = 0
 
+        ## TODO: check joint names and actuator names automatically
         self.joint_names = ['fr3_joint1', 'fr3_joint2', 'fr3_joint3', 'fr3_joint4', 'fr3_joint5', 'fr3_joint6', 'fr3_joint7', 'finger_joint1']
         self.actuator_names = ['actuator_joint1', 'actuator_joint2', 'actuator_joint3', 'actuator_joint4', 'actuator_joint5', 'actuator_joint6', 'actuator_joint7', 'actuator_gripper']
 
@@ -107,28 +110,38 @@ class FrankaFR3Robot(MujocoEnv):
 
 
     def _get_obs(self):
-        # Gather simulated observation
-        if self.data.qpos is not None and self.joint_names:
-            robot_qpos = np.squeeze(np.array([self.data.joint(name).qpos for name in self.joint_names]))
-            robot_qvel = np.squeeze(np.array([self.data.joint(name).qvel for name in self.joint_names]))
-        else:
-            robot_qpos = np.zeros(8) # find info at https://mujoco.readthedocs.io/en/stable/APIreference/APItypes.html#data
-            robot_qvel = np.zeros(8)
+        if self.control_mode == 'joint':
+            # Gather simulated observation
+            if self.data.qpos is not None and self.joint_names:
+                robot_qpos = np.squeeze(np.array([self.data.joint(name).qpos for name in self.joint_names]))
+                robot_qvel = np.squeeze(np.array([self.data.joint(name).qvel for name in self.joint_names]))
+            else:
+                robot_qpos = np.zeros(8) # find info at https://mujoco.readthedocs.io/en/stable/APIreference/APItypes.html#data
+                robot_qvel = np.zeros(8)
 
-        # Simulate observation noise
-        robot_qpos += (
-            self.robot_noise_ratio
-            * self.robot_pos_noise_amp
-            * self.np_random.uniform(low=-1.0, high=1.0, size=robot_qpos.shape)
-        )
-        robot_qvel += (
-            self.robot_noise_ratio
-            * self.robot_vel_noise_amp
-            * self.np_random.uniform(low=-1.0, high=1.0, size=robot_qvel.shape)
-        )
+            # Simulate observation noise
+            robot_qpos += (
+                self.robot_noise_ratio
+                * self.robot_pos_noise_amp
+                * self.np_random.uniform(low=-1.0, high=1.0, size=robot_qpos.shape)
+            )
+            robot_qvel += (
+                self.robot_noise_ratio
+                * self.robot_vel_noise_amp
+                * self.np_random.uniform(low=-1.0, high=1.0, size=robot_qvel.shape)
+            )
+            return np.concatenate((robot_qpos.copy(), robot_qvel.copy()))
+        
+        elif self.control_mode == 'cartesian':
+            ee_pos = self.data.body("right_finger").xpos.copy() # Gets the EE position: 3, 
+            ee_quat = self.data.body("right_finger").xquat.copy()  # Gets the EE orientation as a quaternion: 4,
+            # Convert quaternion to Euler angles if needed
+            ee_euler = mujoco.mjlib.mju_quat2Euler(ee_quat)
 
-        return np.concatenate((robot_qpos.copy(), robot_qvel.copy()))
-
+            ee_pose = np.concatenate([ee_pos, ee_euler])
+            #simulate noise
+            noise = self.robot_noise_ratio * self.np_random.uniform(low=-0.01, high=0.01, size=ee_pose.shape)
+            return ee_pose + noise
 
     def reset_model(self):
         # TODO: introduce randomizations in initial pos and vel
@@ -142,8 +155,7 @@ class FrankaFR3Robot(MujocoEnv):
         obs = self._get_obs()
 
         return obs
-
-
+    
 if __name__ == "__main__":
     env = FrankaFR3Robot(render_mode='human')
     import time

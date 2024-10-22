@@ -34,7 +34,7 @@ class FR3Reach(FrankaFR3Robot, GoalEnv):
         self.data = self.robot_env.data
         self.render_mode = self.robot_env.render_mode
 
-        self.goal = [0,0,0]
+        self.goal = [0,0,0] # placeholder for the goal, randomizes at reset
 
         #self.object_noise_ratio = (
         #    object_noise_ratio  # stochastic noise added to the object observations
@@ -93,10 +93,13 @@ class FR3Reach(FrankaFR3Robot, GoalEnv):
             * self.robot_env.robot_vel_noise_amp[9:]
             * self.robot_env.np_random.uniform(low=-1.0, high=1.0, size=obj_qvel.shape)
         )
-        """
+        
 
         # For a 'reaching' task, the achieved goal is the position of the end effector
         achieved_goal = self.data.body("hand").xpos.copy()[:3] # really the franka wrist, but this is just a proof-of-concept task env
+        """
+        # try with fingers 
+        achieved_goal = self.data.body("right_finger").xpos.copy()[:3]
 
         obs = {
             "observation": robot_obs, #np.concatenate((robot_obs, task_obs)),
@@ -122,6 +125,7 @@ class FR3Reach(FrankaFR3Robot, GoalEnv):
 
         distance = self.np_random.uniform(low=0.2, high=0.7)
         angle = self.np_random.uniform(low=-0.8*np.pi, high=0.8*np.pi)
+        # shouldn't we be able to set the goal manually? 
         self.goal[0] = distance * np.cos(angle)
         self.goal[1] = distance * np.sin(angle)
         self.goal[2] = self.np_random.uniform(low=0.1, high=0.4)
