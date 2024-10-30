@@ -205,6 +205,18 @@ class MujocoEnv(gym.Env):
             )
         self._step_mujoco_simulation(ctrl, n_frames)
 
+        """
+        def _step_mujoco_simulation(self, ctrl, n_frames):
+            self.data.ctrl[:] = ctrl
+
+            mujoco.mj_step(self.model, self.data, nstep=self.frame_skip)
+
+            # As of MuJoCo 2.0, force-related quantities like cacc are not computed
+            # unless there's a force sensor in the model.
+            # See https://github.com/openai/gym/issues/1541
+            mujoco.mj_rnePostConstraint(self.model, self.data)
+        """
+
     def state_vector(self) -> NDArray[np.float64]:
         """Return the position and velocity joint states of the model.
 

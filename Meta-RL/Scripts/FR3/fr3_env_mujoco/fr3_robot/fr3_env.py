@@ -54,13 +54,22 @@ class FrankaFR3Robot(MujocoEnv):
         self.time_limit_steps = int(time_limit * 1000 / frame_skip / 2 )
         self.current_step = 0
 
-        ## TODO: check joint names and actuator names automatically
-        self.joint_names = ['fr3_joint1', 'fr3_joint2', 'fr3_joint3', 'fr3_joint4', 'fr3_joint5', 'fr3_joint6', 'fr3_joint7', 'finger_joint1']
-        self.actuator_names = ['actuator_joint1', 'actuator_joint2', 'actuator_joint3', 'actuator_joint4', 'actuator_joint5', 'actuator_joint6', 'actuator_joint7', 'actuator_gripper']
-
         # HACKY: temporarily pre-load the model to get joint limits and observation
         self.model = mujoco.MjModel.from_xml_path(self.xml_file_path)
         self.data = mujoco.MjData(self.model)
+
+        self.joint_names = []
+        self.actuator_names = []
+
+        for j in range(self.model.njnt):
+                name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, j)
+                if name and name not in self.joint_names:
+                    self.joint_names.append(name)
+            
+        for a in range(self.model.nu):
+            name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, a)
+            if name and name not in self.actuator_names:
+                self.actuator_names.append(name)
 
         self.robot_pos_bound = np.zeros([len(self.joint_names), 2], dtype=float)
         #self.robot_vel_bound = np.ones([len(self.joint_names), 2], dtype=float)
