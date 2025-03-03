@@ -1,3 +1,5 @@
+#this file creates a JSON file for each randomized environment
+
 import json
 import torch.nn as nn
 
