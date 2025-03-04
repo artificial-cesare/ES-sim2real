@@ -11,14 +11,18 @@ Can an agent trained in simulation using meta-deep reinforcement learning with e
 1. **Initial Tests:**  
    - Four MuJoCo environments (Ant, HalfCheetah, Hopper, and Humanoid) were used with different randomization strategies.  
    - While our mDRL framework worked as expected, it did not substantially outperform ES alone, and had higher computational costs.
+   ![Alt text](Paper_and_presentation\hopper.gif)
 
 2. **Franka FR3 Robot:**  
    - We aimed to implement our approach on a Franka FR3 robot.  
    - Because no existing FR3 MuJoCo environment was available, we attempted to create one.  
    - Challenges arose in defining a suitable reward function and ensuring the simulation controller closely mirrored real-world conditions.
+   
 
 ## Results
-The real-world experiment was not completed, so definitive conclusions cannot be drawn. Simulation results suggest the framework is viable, but further experiments are required to uncover the full potential of ES and mDRL in real-world settings.
+The real-world experiment was not completed, so definitive conclusions cannot be drawn. Simulation results suggest the framework is viable (see picture), but further experiments are required to uncover the full potential of ES and mDRL in real-world settings.
+
+![Alt text](Paper_and_presentation\es_sim2real_preliminary.png)
 
 ## Code Structure
 The project is developed in Python using MuJoCo and the Gymnasium library. Key directories include:

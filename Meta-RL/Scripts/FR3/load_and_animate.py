@@ -11,6 +11,8 @@ from gymnasium.spaces import Space
 
 from gymnasium.envs.mujoco.mujoco_rendering import MujocoRenderer
 
+import time
+
 DEFAULT_SIZE = 480 
 
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "fr3_env_mujoco", "fr3_robot")))
@@ -56,10 +58,38 @@ class Animator(gym.Env):
 
         self.mujoco_renderer = MujocoRenderer(
             self.model,
-            self.data,
-            self.width,
             self.height,
+            self.width
         )
+
+    def render(self):
+        self.mujoco_renderer.render(render_mode="human")
+
+def load_n_animate(XML_FILE):
+    animator = Animator(XML_FILE)
+    
+    # Start timing
+    start_time = time.time()
+
+    # Duration for which the environment will be animated
+    duration = 5.0
+    
+    try:
+        while time.time() - start_time < duration:
+            # Take a random action in the environment
+            #env.step(env.action_space.sample())
+            
+            
+            # Render the environment
+            animator.render()
+            
+            # Optional: Add a small sleep to reduce CPU usage
+            time.sleep(0.01)
+    
+    finally:
+        pass
+        # Ensure the environment is closed properly
+        #animator.close()
 
 
 if __name__ == "__main__":
