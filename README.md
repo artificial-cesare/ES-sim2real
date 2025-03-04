@@ -11,7 +11,6 @@ Can an agent trained in simulation using meta-deep reinforcement learning with e
 1. **Initial Tests:**  
    - Four MuJoCo environments (Ant, HalfCheetah, Hopper, and Humanoid) were used with different randomization strategies.  
    - While our mDRL framework worked as expected, it did not substantially outperform ES alone, and had higher computational costs.
-   ![Hopper](Paper_and_presentation/hopper.gif)
 
 2. **Franka FR3 Robot:**  
    - We aimed to implement our approach on a Franka FR3 robot.  
