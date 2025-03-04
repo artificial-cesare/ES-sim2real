@@ -22,7 +22,7 @@ Can an agent trained in simulation using meta-deep reinforcement learning with e
 ## Results
 The real-world experiment was not completed, so definitive conclusions cannot be drawn. Simulation results suggest the framework is viable (see picture), but further experiments are required to uncover the full potential of ES and mDRL in real-world settings.
 
-![Alt text](Paper_and_presentation\es_sim2real_preliminary.png)
+![Alt text](Paper_and_presentation/es_sim2real_preliminary.png)
 
 ## Code Structure
 The project is developed in Python using MuJoCo and the Gymnasium library. Key directories include:
